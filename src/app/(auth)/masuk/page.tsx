@@ -3,7 +3,7 @@ import { Bike } from 'lucide-react'
 import { getSessionUser } from '@/server/session'
 import { SignInForm } from './sign-in-form'
 
-export const metadata = { title: 'Masuk · MotorFlip' }
+export const metadata = { title: 'Masuk · motoflip' }
 
 export default async function SignInPage() {
   if (await getSessionUser()) redirect('/beranda')
@@ -16,7 +16,7 @@ export default async function SignInPage() {
             <Bike className="size-6" aria-hidden />
           </span>
           <h1 className="text-2xl font-bold tracking-tight text-fg">
-            MotorFlip
+            motoflip
           </h1>
           <p className="mt-1 text-sm text-fg-muted">
             Sistem operasi bisnis jual-beli motor Anda.

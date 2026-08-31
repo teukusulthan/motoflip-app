@@ -4,11 +4,11 @@ import { requireUser } from '@/server/auth'
 import { getRecentEntries } from '@/data/finance'
 import { formatDate, formatRupiah } from '@/lib/format'
 import { Card } from '@/components/ui/card'
-import { EmptyState } from '@/components/motorflip/empty-state'
-import { PageHeader } from '@/components/motorflip/page-header'
+import { EmptyState } from '@/components/motoflip/empty-state'
+import { PageHeader } from '@/components/motoflip/page-header'
 import { cn } from '@/lib/utils'
 
-export const metadata = { title: 'Transaksi · MotorFlip' }
+export const metadata = { title: 'Transaksi · motoflip' }
 export const dynamic = 'force-dynamic'
 
 export default async function TransactionsPage() {

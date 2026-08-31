@@ -23,11 +23,11 @@ import {
   formatRupiahCompact,
 } from '@/lib/format'
 import { Card, CardContent } from '@/components/ui/card'
-import { Stat, StatRow } from '@/components/motorflip/stat'
-import { EmptyState } from '@/components/motorflip/empty-state'
-import { PageHeader, SectionHeader } from '@/components/motorflip/page-header'
+import { Stat, StatRow } from '@/components/motoflip/stat'
+import { EmptyState } from '@/components/motoflip/empty-state'
+import { PageHeader, SectionHeader } from '@/components/motoflip/page-header'
 
-export const metadata = { title: 'Analitik · MotorFlip' }
+export const metadata = { title: 'Analitik · motoflip' }
 export const dynamic = 'force-dynamic'
 
 const GROUP_LABELS: Record<string, string> = {

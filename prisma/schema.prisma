@@ -1,4 +1,4 @@
-// MotorFlip — schema
+// motoflip — schema
 //
 // Design rule (§8, §16, §38): LedgerEntry is the ONLY writable source of truth
 // for money. A motorcycle stores its identity, lifecycle and *projections*;
@@ -98,7 +98,7 @@ model CashAccount {
   name   String
   kind   CashAccountKind @default(CASH)
 
-  /// Balance before MotorFlip started tracking. Rupiah, may be negative.
+  /// Balance before motoflip started tracking. Rupiah, may be negative.
   openingBalance BigInt @default(0)
 
   sortOrder  Int       @default(0)

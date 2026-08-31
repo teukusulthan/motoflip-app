@@ -79,8 +79,8 @@ const CATEGORIES: CategorySeed[] = [
 ]
 
 async function main() {
-  const email = process.env.SEED_USER_EMAIL ?? 'admin@motorflip.local'
-  const password = process.env.SEED_USER_PASSWORD ?? 'motorflip123'
+  const email = process.env.SEED_USER_EMAIL ?? 'admin@motoflip.local'
+  const password = process.env.SEED_USER_PASSWORD ?? 'motoflip123'
   const name = process.env.SEED_USER_NAME ?? 'Operator'
 
   const user = await prisma.user.upsert({

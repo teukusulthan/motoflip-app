@@ -24,8 +24,8 @@ import {
 } from '@/lib/format'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { PageHeader, SectionHeader } from '@/components/motorflip/page-header'
-import { StatRow } from '@/components/motorflip/stat'
+import { PageHeader, SectionHeader } from '@/components/motoflip/page-header'
+import { StatRow } from '@/components/motoflip/stat'
 import {
   ConfidenceBadge,
   MissingSignals,

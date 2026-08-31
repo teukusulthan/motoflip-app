@@ -1,10 +1,10 @@
 import { requireUser } from '@/server/auth'
 import { getMotorcycles } from '@/data/garage'
-import { PageHeader } from '@/components/motorflip/page-header'
+import { PageHeader } from '@/components/motoflip/page-header'
 import { DealAnalyzer } from './analyzer'
 import { analyzeDeal } from './action'
 
-export const metadata = { title: 'Analisa Deal · MotorFlip' }
+export const metadata = { title: 'Analisa Deal · motoflip' }
 export const dynamic = 'force-dynamic'
 
 export default async function DealAnalyzerPage() {

@@ -34,7 +34,7 @@ export function SignInForm() {
           autoComplete="username"
           inputMode="email"
           required
-          placeholder="admin@motorflip.local"
+          placeholder="admin@motoflip.local"
         />
       </div>
 

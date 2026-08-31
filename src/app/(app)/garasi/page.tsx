@@ -8,15 +8,15 @@ import { motorcycleFinancials, expectedOutcome } from '@/domain/costing'
 import { entriesFor } from '@/domain/ledger'
 import { isClosed, isInInventory } from '@/domain/types'
 import { Button } from '@/components/ui/button'
-import { EmptyState } from '@/components/motorflip/empty-state'
-import { PageHeader } from '@/components/motorflip/page-header'
+import { EmptyState } from '@/components/motoflip/empty-state'
+import { PageHeader } from '@/components/motoflip/page-header'
 import {
   MotorcycleCard,
   type MotorcycleCardData,
-} from '@/components/motorflip/motorcycle-card'
+} from '@/components/motoflip/motorcycle-card'
 import { cn } from '@/lib/utils'
 
-export const metadata = { title: 'Garasi · MotorFlip' }
+export const metadata = { title: 'Garasi · motoflip' }
 export const dynamic = 'force-dynamic'
 
 const FILTERS = [

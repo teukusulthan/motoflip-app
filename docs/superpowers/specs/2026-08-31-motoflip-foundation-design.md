@@ -1,4 +1,4 @@
-# MotorFlip — Foundation Design (Phases 1–5)
+# motoflip — Foundation Design (Phases 1–5)
 
 Date: 2026-08-31
 Status: implemented

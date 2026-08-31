@@ -10,7 +10,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
-import { MoneyInput } from '@/components/motorflip/money-input'
+import { MoneyInput } from '@/components/motoflip/money-input'
 import type { ActionState } from '@/lib/validation'
 
 const initialState: ActionState = {}

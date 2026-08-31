@@ -74,7 +74,7 @@ async function storeOnCloudinary(
   const result = await new Promise<Record<string, unknown>>((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream(
       {
-        folder: `motorflip/${folder}`,
+        folder: `motoflip/${folder}`,
         resource_type: isPdf ? 'raw' : 'image',
         // Ownership papers must not be publicly guessable — §45.
         type: folder === 'documents' ? 'authenticated' : 'upload',

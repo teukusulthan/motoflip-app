@@ -2,12 +2,12 @@ import { requireUser } from '@/server/auth'
 import { createIncome } from '@/app/actions/ledger'
 import { getCashAccounts, getCategories, getVendors } from '@/data/finance'
 import { getMotorcycles } from '@/data/garage'
-import { PageHeader } from '@/components/motorflip/page-header'
-import { EntryForm } from '@/components/motorflip/entry-form'
+import { PageHeader } from '@/components/motoflip/page-header'
+import { EntryForm } from '@/components/motoflip/entry-form'
 import { Card, CardContent } from '@/components/ui/card'
 import { Info } from 'lucide-react'
 
-export const metadata = { title: 'Tambah Pemasukan · MotorFlip' }
+export const metadata = { title: 'Tambah Pemasukan · motoflip' }
 export const dynamic = 'force-dynamic'
 
 export default async function AddIncomePage() {

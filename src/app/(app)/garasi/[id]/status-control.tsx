@@ -7,7 +7,7 @@ import type { MotorcycleStatus } from '@prisma/client'
 import { updateStatus } from '@/app/actions/motorcycles'
 import { Select } from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
-import { STATUS_LABELS, STATUS_ORDER } from '@/components/motorflip/status-badge'
+import { STATUS_LABELS, STATUS_ORDER } from '@/components/motoflip/status-badge'
 import type { ActionState } from '@/lib/validation'
 
 const initialState: ActionState = {}

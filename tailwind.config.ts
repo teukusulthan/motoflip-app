@@ -1,7 +1,7 @@
 import type { Config } from 'tailwindcss'
 
 /**
- * MotorFlip design system — §31.
+ * motoflip design system — §31.
  * Dark is the primary (and currently only) theme. Colours are declared as CSS
  * custom properties in globals.css so a light theme can be layered later
  * without touching component code.

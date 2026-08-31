@@ -197,7 +197,7 @@ export function Sidebar() {
           <Bike className="size-5" aria-hidden />
         </span>
         <span className="text-base font-bold tracking-tight text-fg">
-          MotorFlip
+          motoflip
         </span>
       </Link>
 

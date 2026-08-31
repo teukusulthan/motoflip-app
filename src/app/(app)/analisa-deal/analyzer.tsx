@@ -8,9 +8,9 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
-import { MoneyInput } from '@/components/motorflip/money-input'
-import { SectionHeader } from '@/components/motorflip/page-header'
-import { StatRow } from '@/components/motorflip/stat'
+import { MoneyInput } from '@/components/motoflip/money-input'
+import { SectionHeader } from '@/components/motoflip/page-header'
+import { StatRow } from '@/components/motoflip/stat'
 import {
   formatDays,
   formatPercent,

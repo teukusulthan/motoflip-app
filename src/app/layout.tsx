@@ -3,9 +3,9 @@ import { Toaster } from 'sonner'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'MotorFlip',
+  title: 'motoflip',
   description: 'Sistem operasi bisnis untuk usaha jual-beli motor',
-  applicationName: 'MotorFlip',
+  applicationName: 'motoflip',
 }
 
 export const viewport: Viewport = {

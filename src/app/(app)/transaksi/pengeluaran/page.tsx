@@ -7,10 +7,10 @@ import {
 } from '@/data/finance'
 import { getMotorcycles } from '@/data/garage'
 import { isClosed } from '@/domain/types'
-import { PageHeader } from '@/components/motorflip/page-header'
-import { EntryForm } from '@/components/motorflip/entry-form'
+import { PageHeader } from '@/components/motoflip/page-header'
+import { EntryForm } from '@/components/motoflip/entry-form'
 
-export const metadata = { title: 'Tambah Pengeluaran · MotorFlip' }
+export const metadata = { title: 'Tambah Pengeluaran · motoflip' }
 export const dynamic = 'force-dynamic'
 
 const GROUP_LABELS: Record<string, string> = {

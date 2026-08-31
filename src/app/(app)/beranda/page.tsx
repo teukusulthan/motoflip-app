@@ -41,11 +41,11 @@ import {
 } from '@/lib/format'
 import { Card, CardContent } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
-import { Stat, StatRow } from '@/components/motorflip/stat'
-import { EmptyState } from '@/components/motorflip/empty-state'
-import { PageHeader, SectionHeader } from '@/components/motorflip/page-header'
+import { Stat, StatRow } from '@/components/motoflip/stat'
+import { EmptyState } from '@/components/motoflip/empty-state'
+import { PageHeader, SectionHeader } from '@/components/motoflip/page-header'
 
-export const metadata = { title: 'Beranda · MotorFlip' }
+export const metadata = { title: 'Beranda · motoflip' }
 export const dynamic = 'force-dynamic'
 
 export default async function HomePage() {

@@ -1,8 +1,8 @@
 import { requireUser } from '@/server/auth'
-import { PageHeader } from '@/components/motorflip/page-header'
+import { PageHeader } from '@/components/motoflip/page-header'
 import { NewMotorcycleForm } from './form'
 
-export const metadata = { title: 'Tambah Motor · MotorFlip' }
+export const metadata = { title: 'Tambah Motor · motoflip' }
 
 export default async function NewMotorcyclePage() {
   await requireUser()

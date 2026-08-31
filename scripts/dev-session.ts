@@ -16,8 +16,8 @@ async function main() {
     throw new Error('dev-session refuses to run in production')
   }
 
-  const email = process.env.SEED_USER_EMAIL ?? 'admin@motorflip.local'
-  const password = process.env.SEED_USER_PASSWORD ?? 'motorflip123'
+  const email = process.env.SEED_USER_EMAIL ?? 'admin@motoflip.local'
+  const password = process.env.SEED_USER_PASSWORD ?? 'motoflip123'
 
   const user = await prisma.user.findUniqueOrThrow({ where: { email } })
 

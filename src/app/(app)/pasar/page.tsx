@@ -16,13 +16,13 @@ import { marketModelLabel } from '@/domain/market/types'
 import { formatPercentSigned, formatRupiahCompact } from '@/lib/format'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { EmptyState } from '@/components/motorflip/empty-state'
-import { PageHeader, SectionHeader } from '@/components/motorflip/page-header'
+import { EmptyState } from '@/components/motoflip/empty-state'
+import { PageHeader, SectionHeader } from '@/components/motoflip/page-header'
 import { ProvenanceNotice, SyntheticMark } from '@/components/market/provenance'
 import { TrackModelPanel } from './track-model'
 import { cn } from '@/lib/utils'
 
-export const metadata = { title: 'Pasar · MotorFlip' }
+export const metadata = { title: 'Pasar · motoflip' }
 export const dynamic = 'force-dynamic'
 
 export default async function MarketPage({
@@ -51,7 +51,7 @@ export default async function MarketPage({
         <EmptyState
           icon={Store}
           title="Belum ada model yang dipantau."
-          description="Tambahkan model dan tahun yang ingin Anda pantau. MotorFlip akan melacak trennya dan membandingkannya dengan rekam jejak flipping Anda sendiri."
+          description="Tambahkan model dan tahun yang ingin Anda pantau. motoflip akan melacak trennya dan membandingkannya dengan rekam jejak flipping Anda sendiri."
         />
         <div className="mt-4">
           <TrackModelPanel />

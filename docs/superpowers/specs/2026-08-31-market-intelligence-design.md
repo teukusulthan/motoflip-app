@@ -1,8 +1,8 @@
-# MotorFlip — Market Intelligence & Decision Engine (Phases 6–7)
+# motoflip — Market Intelligence & Decision Engine (Phases 6–7)
 
 Date: 2026-08-31
 Status: implemented
-Follows: `2026-08-31-motorflip-foundation-design.md`
+Follows: `2026-08-31-motoflip-foundation-design.md`
 
 ## The problem this design solves
 

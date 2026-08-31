@@ -14,10 +14,10 @@ import { formatRupiah } from '@/lib/format'
 import { signOut } from '@/app/actions/auth'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { PageHeader, SectionHeader } from '@/components/motorflip/page-header'
-import { StatRow } from '@/components/motorflip/stat'
+import { PageHeader, SectionHeader } from '@/components/motoflip/page-header'
+import { StatRow } from '@/components/motoflip/stat'
 
-export const metadata = { title: 'Lainnya · MotorFlip' }
+export const metadata = { title: 'Lainnya · motoflip' }
 export const dynamic = 'force-dynamic'
 
 const LINKS = [

@@ -1,4 +1,4 @@
-# MotorFlip
+# motoflip
 
 A private business operating system for a motorcycle flipping business.
 Mobile-first, financially exact, and honest about what it does not know.
@@ -16,7 +16,7 @@ npm run dev                   # http://localhost:3100
 Seeded credentials (development only):
 
 ```
-admin@motorflip.local / motorflip123
+admin@motoflip.local / motoflip123
 ```
 
 ### Local database
@@ -26,15 +26,15 @@ so it needs no `sudo` and does not touch a system-wide Postgres install:
 
 ```bash
 export PATH=/usr/lib/postgresql/16/bin:$PATH
-PGDATA=~/.motorflip/pgdata
+PGDATA=~/.motoflip/pgdata
 
-initdb -D "$PGDATA" -U motorflip_dev --auth=trust -E UTF8 --locale=C
-pg_ctl -D "$PGDATA" -l ~/.motorflip/postgres.log \
-  -o "-p 5433 -k ~/.motorflip -c listen_addresses=127.0.0.1" start
-createdb -h 127.0.0.1 -p 5433 -U motorflip_dev motorflip_dev
+initdb -D "$PGDATA" -U motoflip_dev --auth=trust -E UTF8 --locale=C
+pg_ctl -D "$PGDATA" -l ~/.motoflip/postgres.log \
+  -o "-p 5433 -k ~/.motoflip -c listen_addresses=127.0.0.1" start
+createdb -h 127.0.0.1 -p 5433 -U motoflip_dev motoflip_dev
 ```
 
-Stop it with `pg_ctl -D ~/.motorflip/pgdata stop`.
+Stop it with `pg_ctl -D ~/.motoflip/pgdata stop`.
 
 `--auth=trust` is acceptable here because the cluster listens only on
 `127.0.0.1` and is owned by your user. **Do not use trust auth in production** —
@@ -63,7 +63,7 @@ src/
 ├─ data/          The only place Prisma is imported. Maps rows → domain values.
 ├─ server/        Auth, sessions, password hashing.
 ├─ app/           App Router screens + server actions.
-├─ components/    ui/ primitives + motorflip/ product components.
+├─ components/    ui/ primitives + motoflip/ product components.
 └─ lib/           Formatting (id-ID), validation schemas, Prisma client.
 ```
 

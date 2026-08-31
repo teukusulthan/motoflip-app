@@ -9,9 +9,9 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
-import { MoneyInput } from '@/components/motorflip/money-input'
-import { SectionHeader } from '@/components/motorflip/page-header'
-import { STATUS_LABELS, STATUS_ORDER } from '@/components/motorflip/status-badge'
+import { MoneyInput } from '@/components/motoflip/money-input'
+import { SectionHeader } from '@/components/motoflip/page-header'
+import { STATUS_LABELS, STATUS_ORDER } from '@/components/motoflip/status-badge'
 import { SOURCE_LABELS } from '@/domain/inventory'
 import type { ActionState } from '@/lib/validation'
 
@@ -179,7 +179,7 @@ export function NewMotorcycleForm() {
         <Card>
           <CardContent className="space-y-4">
             <p className="text-xs leading-relaxed text-fg-muted">
-              Estimasi awal Anda. MotorFlip akan membandingkannya dengan realisasi
+              Estimasi awal Anda. motoflip akan membandingkannya dengan realisasi
               agar Anda tahu seberapa akurat perkiraan Anda.
             </p>
             <Field label="Estimasi Biaya Perbaikan" htmlFor="projectedRepairCost">

@@ -1,5 +1,5 @@
 import { requireUser } from '@/server/auth'
-import { BottomNav, Sidebar } from '@/components/motorflip/quick-actions'
+import { BottomNav, Sidebar } from '@/components/motoflip/quick-actions'
 
 /**
  * Authenticated shell.

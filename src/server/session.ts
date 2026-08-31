@@ -4,7 +4,7 @@ import { cookies } from 'next/headers'
 import { cache } from 'react'
 import { prisma } from '@/lib/prisma'
 
-export const SESSION_COOKIE = 'motorflip_session'
+export const SESSION_COOKIE = 'motoflip_session'
 const SESSION_TTL_DAYS = 30
 
 /**

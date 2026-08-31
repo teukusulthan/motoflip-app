@@ -69,6 +69,6 @@ describe('removeFile()', () => {
   })
 
   it('is a no-op for a Cloudinary id when Cloudinary is unconfigured', async () => {
-    await expect(removeFile('motorflip/photos/abc123')).resolves.toBeUndefined()
+    await expect(removeFile('motoflip/photos/abc123')).resolves.toBeUndefined()
   })
 })
