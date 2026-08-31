@@ -15,8 +15,12 @@ const nextId = (prefix: string) => `${prefix}-${(counter += 1)}`
 
 export const d = (iso: string): Date => new Date(`${iso}T00:00:00.000Z`)
 
+/**
+ * `amount` is Omit-ed from the Partial before intersecting: an intersection
+ * would narrow `Rupiah | number` back down to `Rupiah` and reject plain numbers.
+ */
 export function entry(
-  overrides: Partial<DomainLedgerEntry> & {
+  overrides: Omit<Partial<DomainLedgerEntry>, 'amount'> & {
     amount: Rupiah | number
     type?: LedgerEntryType
   },

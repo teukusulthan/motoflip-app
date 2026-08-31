@@ -1,0 +1,89 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* §31 palette, expressed as HSL channels so Tailwind can apply opacity. */
+    --bg: 210 10% 4%;          /* #090A0B */
+    --surface: 210 10% 8%;     /* #111315 */
+    --elevated: 214 10% 10%;   /* #17191C */
+    --border: 214 9% 16%;      /* #25282C */
+    --input: 214 9% 14%;
+    --ring: 28 95% 54%;
+
+    --fg: 210 9% 96%;
+    --fg-muted: 214 8% 64%;
+    --fg-subtle: 214 8% 44%;
+
+    --accent: 28 95% 54%;
+    --accent-fg: 24 40% 8%;
+    --accent-muted: 28 60% 16%;
+
+    --success: 152 58% 48%;
+    --success-muted: 152 40% 14%;
+    --warning: 45 95% 55%;
+    --warning-muted: 45 50% 14%;
+    --danger: 358 72% 60%;
+    --danger-muted: 358 45% 15%;
+    --info: 210 88% 62%;
+    --info-muted: 210 45% 15%;
+
+    --font-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
+      'Helvetica Neue', Arial, sans-serif;
+    --font-mono: ui-monospace, 'SF Mono', 'Cascadia Mono', Menlo, monospace;
+
+    color-scheme: dark;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html {
+    /* Prevent iOS zooming the page when a form field is focused. */
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-bg text-fg font-sans antialiased;
+    /* §32 — nothing should ever scroll sideways. */
+    overflow-x: hidden;
+  }
+
+  /* Financial figures must align vertically down a column — §44. */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum';
+  }
+
+  /* §41 — a visible focus ring everywhere, never `outline: none`. */
+  :focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-bg;
+  }
+
+  ::selection {
+    @apply bg-accent/30;
+  }
+}
+
+@layer components {
+  .app-shell {
+    @apply mx-auto w-full max-w-app px-4 lg:max-w-6xl lg:px-8;
+  }
+
+  /* Keeps sticky bars clear of the bottom nav and the iOS home indicator. */
+  .pb-nav-safe {
+    padding-bottom: calc(theme('spacing.nav') + env(safe-area-inset-bottom) + 1rem);
+  }
+}
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}

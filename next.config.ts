@@ -2,11 +2,11 @@ import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  // An unrelated package-lock.json in the home directory makes Next infer the
+  // wrong workspace root; pin it to this project.
+  outputFileTracingRoot: __dirname,
   images: {
     remotePatterns: [{ protocol: 'https', hostname: 'res.cloudinary.com' }],
-  },
-  experimental: {
-    typedRoutes: false,
   },
 }
 
