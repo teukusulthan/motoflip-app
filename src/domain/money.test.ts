@@ -1,10 +1,20 @@
 import { describe, expect, it } from 'vitest'
 import {
+  ZERO,
+  absRupiah,
+  addRupiah,
   applyBps,
+  bps,
+  bpsToPercent,
   divRound,
+  isNegative,
+  isPositive,
+  isZero,
+  negateRupiah,
   parseRupiahInput,
   ratioToBps,
   rupiah,
+  subRupiah,
   sumRupiah,
 } from './money'
 
@@ -97,5 +107,43 @@ describe('sumRupiah()', () => {
 describe('applyBps()', () => {
   it('applies a rate with deterministic rounding', () => {
     expect(applyBps(rupiah(22_720_000), 1444 as never)).toBe(3_280_768n)
+  })
+})
+
+describe('arithmetic helpers', () => {
+  const a = rupiah(21_500_000)
+  const b = rupiah(1_220_000)
+
+  it('adds and subtracts exactly', () => {
+    expect(addRupiah(a, b)).toBe(22_720_000n)
+    expect(subRupiah(a, b)).toBe(20_280_000n)
+  })
+
+  it('negates and takes absolute value', () => {
+    expect(negateRupiah(a)).toBe(-21_500_000n)
+    expect(absRupiah(rupiah(-450_000))).toBe(450_000n)
+    expect(absRupiah(a)).toBe(21_500_000n)
+    expect(absRupiah(ZERO)).toBe(0n)
+  })
+
+  it('classifies sign', () => {
+    expect(isZero(ZERO)).toBe(true)
+    expect(isZero(a)).toBe(false)
+    expect(isNegative(rupiah(-1))).toBe(true)
+    expect(isNegative(ZERO)).toBe(false)
+    expect(isPositive(a)).toBe(true)
+    expect(isPositive(ZERO)).toBe(false)
+  })
+})
+
+describe('basis point helpers', () => {
+  it('rounds a fractional rate to whole basis points', () => {
+    expect(bps(1443.7)).toBe(1444)
+    expect(bps(-500.4)).toBe(-500)
+  })
+
+  it('converts basis points to a display percentage', () => {
+    expect(bpsToPercent(bps(1444))).toBe(14.44)
+    expect(bpsToPercent(bps(-500))).toBe(-5)
   })
 })
