@@ -1,0 +1,446 @@
+// MotorFlip — schema
+//
+// Design rule (§8, §16, §38): LedgerEntry is the ONLY writable source of truth
+// for money. A motorcycle stores its identity, lifecycle and *projections*;
+// every actual rupiah figure (purchase price, total cost, sale price, profit,
+// ROI) is derived from the ledger by the pure functions in src/domain.
+// Corrections are made by voiding an entry and issuing a new one — historical
+// financial rows are never mutated.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------- identity --
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  sessions      Session[]
+  settings      Settings?
+  motorcycles   Motorcycle[]
+  ledgerEntries LedgerEntry[]
+  cashAccounts  CashAccount[]
+  categories    Category[]
+  vendors       Vendor[]
+  photos        Photo[]
+  documents     Document[]
+  statusChanges StatusChange[]
+  dealAnalyses  DealAnalysis[]
+
+  @@map("users")
+}
+
+model Session {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  createdAt DateTime  @default(now())
+  revokedAt DateTime?
+  userAgent String?
+  ipAddress String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("sessions")
+}
+
+model Settings {
+  id     String @id @default(cuid())
+  userId String @unique
+
+  // §18 — inventory aging thresholds, configurable
+  agingWarnDays     Int @default(30)
+  agingCriticalDays Int @default(60)
+
+  // §4 — attention rules
+  repairOverrunWarnBps Int @default(2000) // warn when repairs exceed budget by 20%
+  lowMarginWarnBps     Int @default(1000) // warn when expected ROI < 10%
+
+  timezone String @default("Asia/Jakarta")
+  locale   String @default("id-ID")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("settings")
+}
+
+// ------------------------------------------------------------------- money --
+
+enum CashAccountKind {
+  CASH
+  BANK
+  EWALLET
+}
+
+model CashAccount {
+  id     String          @id @default(cuid())
+  userId String
+  name   String
+  kind   CashAccountKind @default(CASH)
+
+  /// Balance before MotorFlip started tracking. Rupiah, may be negative.
+  openingBalance BigInt @default(0)
+
+  sortOrder  Int       @default(0)
+  archivedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  entriesFrom LedgerEntry[] @relation("EntryAccount")
+  entriesTo   LedgerEntry[] @relation("EntryToAccount")
+
+  @@index([userId, archivedAt])
+  @@map("cash_accounts")
+}
+
+enum CategoryKind {
+  INCOME
+  EXPENSE
+}
+
+enum CategoryGroup {
+  ACQUISITION
+  REPAIR
+  MAINTENANCE
+  DOCUMENTATION
+  LOGISTICS
+  SELLING
+  OTHER
+  SALE
+  OTHER_INCOME
+}
+
+/// Marks the two categories that carry structural meaning for derivation.
+/// PURCHASE identifies the acquisition entry (→ purchase price + purchase date).
+/// SALE identifies the disposal entry (→ sale price + sale date).
+enum CategoryRole {
+  NORMAL
+  PURCHASE
+  SALE
+}
+
+model Category {
+  id     String @id @default(cuid())
+  userId String
+
+  slug  String
+  name  String
+  kind  CategoryKind
+  group CategoryGroup
+  role  CategoryRole  @default(NORMAL)
+
+  /// System categories are seeded and cannot be deleted — §10 allows the user
+  /// to add their own later without a migration.
+  isSystem   Boolean   @default(false)
+  sortOrder  Int       @default(0)
+  archivedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user    User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  entries LedgerEntry[]
+
+  @@unique([userId, slug])
+  @@index([userId, kind, archivedAt])
+  @@map("categories")
+}
+
+model Vendor {
+  id       String  @id @default(cuid())
+  userId   String
+  name     String
+  category String?
+  phone    String?
+  address  String?
+  notes    String?
+
+  archivedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  user    User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  entries LedgerEntry[]
+
+  @@index([userId, archivedAt])
+  @@map("vendors")
+}
+
+enum LedgerEntryType {
+  INCOME
+  EXPENSE
+  TRANSFER
+}
+
+model LedgerEntry {
+  id     String          @id @default(cuid())
+  userId String
+  type   LedgerEntryType
+
+  /// Whole rupiah, always POSITIVE. Direction is carried by `type`, never by
+  /// the sign — see src/domain/money.ts.
+  amount BigInt
+
+  occurredAt DateTime
+
+  /// Money leaves this account for EXPENSE/TRANSFER; arrives here for INCOME.
+  accountId   String
+  /// Destination account — TRANSFER only.
+  toAccountId String?
+
+  /// null = business-level entry, not attributable to a single motorcycle.
+  motorcycleId String?
+
+  categoryId String
+  vendorId   String?
+
+  note            String?
+  receiptPublicId String?
+  receiptUrl      String?
+
+  // §38 — corrections are void + reissue, never UPDATE.
+  voidedAt        DateTime?
+  voidedByEntryId String?      @unique
+  voidedBy        LedgerEntry? @relation("VoidChain", fields: [voidedByEntryId], references: [id])
+  voids           LedgerEntry? @relation("VoidChain")
+  voidReason      String?
+
+  createdAt DateTime @default(now())
+
+  user       User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account    CashAccount  @relation("EntryAccount", fields: [accountId], references: [id])
+  toAccount  CashAccount? @relation("EntryToAccount", fields: [toAccountId], references: [id])
+  motorcycle Motorcycle?  @relation(fields: [motorcycleId], references: [id])
+  category   Category     @relation(fields: [categoryId], references: [id])
+  vendor     Vendor?      @relation(fields: [vendorId], references: [id])
+
+  @@index([userId, occurredAt])
+  @@index([motorcycleId, voidedAt])
+  @@index([userId, type, voidedAt])
+  @@index([accountId])
+  @@index([categoryId])
+  @@index([vendorId])
+  @@map("ledger_entries")
+}
+
+// ----------------------------------------------------------------- garage ---
+
+enum MotorcycleStatus {
+  LEAD
+  PURCHASING
+  OWNED
+  PREPARATION
+  READY_TO_SELL
+  LISTED
+  NEGOTIATION
+  SOLD
+  ARCHIVED
+}
+
+enum AcquisitionSource {
+  FACEBOOK_MARKETPLACE
+  OLX
+  DEALER
+  DIRECT_OWNER
+  FRIEND
+  WORKSHOP
+  AUCTION
+  INSTAGRAM
+  OTHER
+}
+
+model Motorcycle {
+  id     String @id @default(cuid())
+  userId String
+
+  brand   String
+  model   String
+  variant String?
+  year    Int
+  color   String?
+  mileage Int?
+
+  plateNumber  String?
+  engineNumber String?
+  frameNumber  String?
+
+  status MotorcycleStatus @default(LEAD)
+
+  location String?
+
+  acquisitionSource AcquisitionSource @default(OTHER)
+  sellerName        String?
+  sellerContact     String?
+
+  // §9 — PROJECTIONS ONLY. Actuals are derived from the ledger.
+  projectedPurchasePrice BigInt?
+  projectedRepairCost    BigInt?
+  targetSellingPrice     BigInt?
+
+  /// Where the bike is listed, and since when — feeds the §4 attention rules.
+  listedAt    DateTime?
+  listedPrice BigInt?
+
+  notes       String?
+  heroPhotoId String?
+
+  archivedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ledgerEntries LedgerEntry[]
+  photos        Photo[]
+  documents     Document[]
+  statusChanges StatusChange[]
+  dealAnalyses  DealAnalysis[]
+
+  @@index([userId, status, archivedAt])
+  @@index([userId, createdAt])
+  @@map("motorcycles")
+}
+
+model StatusChange {
+  id           String @id @default(cuid())
+  userId       String
+  motorcycleId String
+
+  fromStatus MotorcycleStatus?
+  toStatus   MotorcycleStatus
+  occurredAt DateTime
+  note       String?
+  createdAt  DateTime          @default(now())
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  motorcycle Motorcycle @relation(fields: [motorcycleId], references: [id], onDelete: Cascade)
+
+  @@index([motorcycleId, occurredAt])
+  @@map("status_changes")
+}
+
+enum PhotoCategory {
+  PURCHASE_CONDITION
+  DAMAGE
+  REPAIR_PROGRESS
+  BEFORE
+  AFTER
+  LISTING
+  SOLD
+  DOCUMENT
+  RECEIPT
+  OTHER
+}
+
+model Photo {
+  id           String @id @default(cuid())
+  userId       String
+  motorcycleId String
+
+  publicId String
+  url      String
+  width    Int?
+  height   Int?
+
+  category  PhotoCategory @default(OTHER)
+  caption   String?
+  sortOrder Int           @default(0)
+  takenAt   DateTime?
+
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  motorcycle Motorcycle @relation(fields: [motorcycleId], references: [id], onDelete: Cascade)
+
+  @@index([motorcycleId, deletedAt, sortOrder])
+  @@map("photos")
+}
+
+enum DocumentType {
+  STNK
+  BPKB
+  PURCHASE_AGREEMENT
+  SALE_AGREEMENT
+  TAX
+  RECEIPT
+  OTHER
+}
+
+model Document {
+  id           String @id @default(cuid())
+  userId       String
+  motorcycleId String
+
+  type      DocumentType @default(OTHER)
+  publicId  String
+  url       String
+  fileName  String
+  mimeType  String
+  sizeBytes Int
+
+  /// §14 — drives the "documents approaching expiration" attention rule.
+  expiresAt DateTime?
+  notes     String?
+
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  motorcycle Motorcycle @relation(fields: [motorcycleId], references: [id], onDelete: Cascade)
+
+  @@index([motorcycleId, deletedAt])
+  @@index([userId, expiresAt])
+  @@map("documents")
+}
+
+// ---------------------------------------------------------- deal analyzer ---
+
+model DealAnalysis {
+  id     String @id @default(cuid())
+  userId String
+
+  brand   String
+  model   String
+  variant String?
+  year    Int
+
+  sellerPrice      BigInt
+  expectedPurchase BigInt
+  estimatedRepair  BigInt
+  expectedSale     BigInt
+
+  /// Frozen result of the scoring engine at analysis time, so a historical
+  /// analysis never silently changes when the scoring config is tuned.
+  resultSnapshot Json
+
+  /// Set when a lead was actually bought off the back of this analysis.
+  convertedMotorcycleId String?
+
+  createdAt DateTime @default(now())
+
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  motorcycle Motorcycle? @relation(fields: [convertedMotorcycleId], references: [id])
+
+  @@index([userId, createdAt])
+  @@map("deal_analyses")
+}
