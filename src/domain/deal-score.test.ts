@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { motorcycle, purchase, sale } from './__fixtures__/builders'
 import {
+  provenance as marketProvenance,
+  view as marketView,
+} from './market/__fixtures__'
+import {
   DEAL_SCORE_CONFIG,
   type DealInput,
   interpolate,
@@ -165,5 +169,129 @@ describe('scoreDeal() with personal history (§28)', () => {
     expect(history.matchingYearCount).toBe(0)
     expect(history.averageRoi).toBeNull()
     expect(history.label).toBeNull()
+  })
+})
+
+describe('scoreDeal() with market context — §30', () => {
+  const bikes = [
+    motorcycle({ id: 'h1', status: 'SOLD', brand: 'Yamaha', model: 'NMAX', year: 2022 }),
+    motorcycle({ id: 'h2', status: 'SOLD', brand: 'Yamaha', model: 'NMAX', year: 2022 }),
+    motorcycle({ id: 'h3', status: 'SOLD', brand: 'Yamaha', model: 'NMAX', year: 2022 }),
+  ]
+  const entries = [
+    purchase(20_000_000, '2026-06-01', 'h1'),
+    sale(23_400_000, '2026-06-18', 'h1'),
+    purchase(20_000_000, '2026-07-01', 'h2'),
+    sale(23_400_000, '2026-07-18', 'h2'),
+    purchase(20_000_000, '2026-07-20', 'h3'),
+    sale(23_400_000, '2026-08-06', 'h3'),
+  ]
+
+  it('reports no market context when the model is not tracked', () => {
+    const result = scoreDeal(deal(), bikes, entries)
+    expect(result.market).toBeNull()
+    expect(result.missingSignals.join(' ')).toMatch(/belum dipantau/i)
+    expect(
+      result.components.find((c) => c.key === 'marketAlignment')?.score,
+    ).toBeNull()
+  })
+
+  it('shows synthetic market data but refuses to score with it (§39)', () => {
+    const demo = marketView({
+      provenance: marketProvenance({ source: 'DEMO', confidence: 'NONE' }),
+    })
+    const result = scoreDeal(deal(), bikes, entries, demo)
+
+    expect(result.market).not.toBeNull()
+    expect(result.market?.counted).toBe(false)
+    expect(
+      result.components.find((c) => c.key === 'marketAlignment')?.score,
+    ).toBeNull()
+    expect(result.missingSignals.join(' ')).toMatch(/ilustrasi/i)
+  })
+
+  it('produces an identical score with and without synthetic market data', () => {
+    // The strongest guarantee: an illustration cannot move the number.
+    const withoutMarket = scoreDeal(deal(), bikes, entries)
+    const withDemo = scoreDeal(
+      deal(),
+      bikes,
+      entries,
+      marketView({
+        provenance: marketProvenance({ source: 'DEMO', confidence: 'NONE' }),
+      }),
+    )
+    expect(withDemo.score).toBe(withoutMarket.score)
+  })
+
+  it('scores market alignment once the data is real', () => {
+    const real = marketView({
+      provenance: marketProvenance({ source: 'MANUAL', confidence: 'MEDIUM' }),
+    })
+    const result = scoreDeal(deal(), bikes, entries, real)
+    expect(result.market?.counted).toBe(true)
+    expect(
+      result.components.find((c) => c.key === 'marketAlignment')?.score,
+    ).not.toBeNull()
+  })
+
+  it('rates buying below the market better than buying above it', () => {
+    const real = marketView({
+      provenance: marketProvenance({ source: 'MANUAL', confidence: 'MEDIUM' }),
+    })
+    // Fixture market: P25 23,000,000 / median 26,000,000.
+    const cheap = scoreDeal(
+      deal({ expectedPurchase: rupiah(21_000_000) }),
+      bikes,
+      entries,
+      real,
+    )
+    const dear = scoreDeal(
+      deal({ expectedPurchase: rupiah(25_000_000) }),
+      bikes,
+      entries,
+      real,
+    )
+    const cheapScore = cheap.components.find((c) => c.key === 'marketAlignment')?.score
+    const dearScore = dear.components.find((c) => c.key === 'marketAlignment')?.score
+    expect(cheapScore).toBeGreaterThan(dearScore as number)
+  })
+
+  it('penalises an expected sale far above the market median', () => {
+    const real = marketView({
+      provenance: marketProvenance({ source: 'MANUAL', confidence: 'MEDIUM' }),
+    })
+    const realistic = scoreDeal(
+      deal({ expectedSale: rupiah(25_800_000) }),
+      bikes,
+      entries,
+      real,
+    )
+    const wishful = scoreDeal(
+      deal({ expectedSale: rupiah(33_000_000) }),
+      bikes,
+      entries,
+      real,
+    )
+    const realisticScore = realistic.components.find(
+      (c) => c.key === 'marketAlignment',
+    )?.score
+    const wishfulScore = wishful.components.find(
+      (c) => c.key === 'marketAlignment',
+    )?.score
+    expect(realisticScore).toBeGreaterThan(wishfulScore as number)
+  })
+
+  it('reaches HIGH confidence only with both real market data and real history', () => {
+    const real = marketView({
+      provenance: marketProvenance({ source: 'MANUAL', confidence: 'MEDIUM' }),
+    })
+    expect(scoreDeal(deal(), bikes, entries, real).confidence).toBe('HIGH')
+    // Market data but no personal history.
+    expect(scoreDeal(deal(), [], [], real).confidence).toBe('MEDIUM')
+    // Personal history but no market data.
+    expect(scoreDeal(deal(), bikes, entries).confidence).toBe('MEDIUM')
+    // Neither.
+    expect(scoreDeal(deal(), [], []).confidence).toBe('LOW')
   })
 })

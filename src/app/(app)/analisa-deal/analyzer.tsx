@@ -17,6 +17,7 @@ import {
   formatRupiah,
 } from '@/lib/format'
 import { BAND_LABELS, CONFIDENCE_LABELS } from '@/domain/deal-score'
+import { CONFIDENCE_LABELS as MARKET_CONFIDENCE_LABELS } from '@/domain/market/types'
 import { cn } from '@/lib/utils'
 import type { DealAnalysisView } from './action'
 
@@ -241,6 +242,78 @@ function ResultPanel({
         </Card>
       </section>
 
+      {/* §30 — the market half */}
+      <section>
+        <SectionHeader title="Pasar" />
+        {result.market === null ? (
+          <Card className="border-dashed">
+            <CardContent className="flex items-start gap-3">
+              <Info className="mt-0.5 size-4 shrink-0 text-fg-subtle" aria-hidden />
+              <p className="text-xs leading-relaxed text-fg-muted">
+                Model ini belum dipantau. Tambahkan di halaman{' '}
+                <span className="font-semibold text-fg">Pasar</span> agar
+                analisa berikutnya bisa membandingkan harga Anda dengan pasar.
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card className={result.market.counted ? undefined : 'border-dashed border-warning/40'}>
+            <CardContent className="py-1">
+              {!result.market.counted && (
+                <p className="border-b border-border py-3 text-xs leading-relaxed text-warning">
+                  Angka pasar di bawah ini adalah ilustrasi dan{' '}
+                  <span className="font-semibold">tidak memengaruhi skor</span>.
+                  Catat listing nyata di halaman Pasar untuk mengaktifkannya.
+                </p>
+              )}
+              <StatRow
+                label="Perkiraan harga beli pasar"
+                value={
+                  result.market.estimatedBuyPrice === null
+                    ? '—'
+                    : formatRupiah(BigInt(result.market.estimatedBuyPrice))
+                }
+              />
+              <StatRow
+                label="Harga tengah pasar"
+                value={
+                  result.market.medianPrice === null
+                    ? '—'
+                    : formatRupiah(BigInt(result.market.medianPrice))
+                }
+              />
+              <StatRow
+                label="Rata-rata hari terjual"
+                value={
+                  result.market.avgDaysToSell === null
+                    ? '—'
+                    : `${result.market.avgDaysToSell} hari`
+                }
+              />
+              <StatRow
+                label="Tren permintaan"
+                value={
+                  result.market.demandGrowthBps === null
+                    ? '—'
+                    : `${result.market.demandGrowthBps >= 0 ? '+' : ''}${(result.market.demandGrowthBps / 100).toFixed(1)}%`
+                }
+                tone={
+                  result.market.demandGrowthBps === null
+                    ? 'default'
+                    : result.market.demandGrowthBps >= 0
+                      ? 'positive'
+                      : 'negative'
+                }
+              />
+              <StatRow
+                label="Keyakinan data pasar"
+                value={MARKET_CONFIDENCE_LABELS[result.market.confidence]}
+              />
+            </CardContent>
+          </Card>
+        )}
+      </section>
+
       <section>
         <SectionHeader title="Rekam Jejak Anda" />
         <Card>
@@ -277,6 +350,7 @@ function ResultPanel({
       </section>
 
       {/* §29/§30/§39 — state plainly what the score could not see. */}
+      {result.missingSignals.length > 0 && (
       <section>
         <SectionHeader title="Batas Analisis Ini" />
         <Card className="border-warning/30 bg-warning-muted/20">
@@ -302,13 +376,15 @@ function ResultPanel({
               <p className="mt-2.5 flex items-start gap-1.5 text-xs leading-relaxed text-fg-subtle">
                 <Info className="mt-0.5 size-3 shrink-0" aria-hidden />
                 Permintaan pasar yang naik tidak dengan sendirinya berarti flip
-                yang bagus. Skor ini hanya menilai angka Anda sendiri, dan
-                keyakinannya diturunkan karena data pasar belum terhubung.
+                yang bagus. Skor menimbang margin, risiko perbaikan, rekam jejak
+                Anda, dan kesesuaian harga terhadap pasar — dan keyakinannya
+                turun untuk setiap sinyal yang tidak tersedia.
               </p>
             </div>
           </CardContent>
         </Card>
       </section>
+      )}
     </>
   )
 }

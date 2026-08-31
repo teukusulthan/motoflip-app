@@ -92,13 +92,41 @@ enforced by an ESLint `no-restricted-imports` rule, not left to discipline.
   moving money between your own accounts can never be read as a cost.
 - Corrections are **void-and-reissue**. Financial rows are never mutated.
 
-## What is deliberately not built yet
+## Market Intelligence
 
-Market Intelligence (spec §22–§30) needs real external data. Rather than ship
-mock demand curves that look exactly like real signals, the Market screen states
-plainly that it is not connected, and the Deal Analyzer scores only the numbers
-you supply plus your own flipping history — reducing its confidence and naming
-the signals it could not see.
+Market data arrives through a provider abstraction (`src/server/market`), with
+two backends:
+
+| Provider | Source | Confidence | Counts toward scores |
+|---|---|---|---|
+| `demo` | Deterministic synthetic data | `NONE` | **No** |
+| manual | Listings you record yourself | `LOW`–`HIGH` by sample size | Yes |
+
+The rule that governs the whole subsystem: **synthetic data is shown but never
+counted.** A demo figure that looks like a finding is worse than no figure at
+all, because it can drive a real purchase. Concretely:
+
+- A `DEMO` snapshot carries `NONE` confidence, which propagates through scoring
+  and renders as an `ILUSTRASI` badge with dashed, muted styling.
+- Demo data receives zero weight in the opportunity score, so a model where you
+  have real flipping history scores purely on that history — and the screen says
+  so in plain language.
+- A deal analysed with demo market data scores *identically* to one analysed
+  with no market data at all. There is a test asserting exactly that.
+- `HIGH` confidence on a deal requires both real market data and a real personal
+  track record. Neither alone is enough.
+
+To replace the provider, implement `MarketDataProvider`, register it, and set
+`MARKET_PROVIDER`. No screen, score or domain function changes.
+
+### Recording real market data
+
+The Market screen's **Catat Listing yang Anda Lihat** records an asking price
+you actually saw. You are in the market daily, so this is genuine evidence —
+and it is what lifts a model out of illustration territory. Confidence rises
+with sample size: under 6 observations is `LOW`, 12 or more is `HIGH`. A month
+with no observations produces no snapshot; a gap is reported as a gap, never
+interpolated.
 
 ## Security notes
 

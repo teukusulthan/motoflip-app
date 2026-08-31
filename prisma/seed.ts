@@ -125,6 +125,42 @@ async function main() {
     console.log('✓ 2 akun kas')
   }
 
+  // §25 — tracked market models, at model+year granularity. Snapshots are NOT
+  // seeded: they come from the provider at read time, or from observations the
+  // user records. Seeding fake history would be exactly what §39 forbids.
+  const tracked = [
+    { brand: 'Yamaha', model: 'NMAX', variant: 'Connected ABS', year: 2022 },
+    { brand: 'Yamaha', model: 'NMAX', variant: null, year: 2023 },
+    { brand: 'Honda', model: 'Vario 160', variant: 'CBS', year: 2023 },
+    { brand: 'Honda', model: 'PCX 160', variant: 'ABS', year: 2022 },
+    { brand: 'Yamaha', model: 'Aerox', variant: '155 Connected', year: 2023 },
+    { brand: 'Honda', model: 'Beat', variant: 'Deluxe', year: 2020 },
+    { brand: 'Honda', model: 'Vario 125', variant: 'CBS ISS', year: 2021 },
+  ]
+
+  for (const model of tracked) {
+    const created = await prisma.marketModel.upsert({
+      where: {
+        userId_brand_model_year: {
+          userId: user.id,
+          brand: model.brand,
+          model: model.model,
+          year: model.year,
+        },
+      },
+      update: {},
+      create: { ...model, userId: user.id },
+    })
+    await prisma.watchlistItem.upsert({
+      where: {
+        userId_marketModelId: { userId: user.id, marketModelId: created.id },
+      },
+      update: {},
+      create: { userId: user.id, marketModelId: created.id },
+    })
+  }
+  console.log(`✓ ${tracked.length} model dipantau`)
+
   const existingBikes = await prisma.motorcycle.count({ where: { userId: user.id } })
   if (existingBikes > 0) {
     console.log('• Data motor sudah ada — demo dilewati')
@@ -296,6 +332,7 @@ async function main() {
   }
 
   console.log(`✓ ${demo.length} motor demo`)
+
   console.log('\nMasuk dengan:')
   console.log(`  Email    : ${email}`)
   console.log(`  Password : ${password}`)

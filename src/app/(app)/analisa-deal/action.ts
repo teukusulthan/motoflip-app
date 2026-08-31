@@ -7,6 +7,8 @@ import { getMotorcycles } from '@/data/garage'
 import { prisma } from '@/lib/prisma'
 import { rupiah } from '@/domain/money'
 import { type DealScoreResult, scoreDeal } from '@/domain/deal-score'
+import { getMarketView } from '@/data/market'
+import type { MarketConfidence } from '@/domain/market/types'
 import { amountSchema } from '@/lib/validation'
 
 const schema = z.object({
@@ -45,6 +47,17 @@ export interface DealAnalysisView {
       averageDaysToSell: number | null
       label: string | null
     }
+    /** §30 — the market half, or null when the model is not tracked. */
+    market: {
+      counted: boolean
+      confidence: MarketConfidence
+      score: number | null
+      medianPrice: string | null
+      estimatedBuyPrice: string | null
+      avgDaysToSell: number | null
+      demandGrowthBps: number | null
+      methodology: string
+    } | null
     missingSignals: string[]
   }
 }
@@ -70,12 +83,25 @@ export async function analyzeDeal(
     expectedSale: rupiah(parsed.data.expectedSale),
   }
 
-  const [motorcycles, entries] = await Promise.all([
+  const [motorcycles, entries, trackedModel] = await Promise.all([
     getMotorcycles(userId),
     getAllEntries(userId),
+    // §25 — the market lookup is model AND year, not model alone.
+    prisma.marketModel.findFirst({
+      where: {
+        userId,
+        brand: { equals: parsed.data.brand, mode: 'insensitive' },
+        model: { equals: parsed.data.model, mode: 'insensitive' },
+        year: parsed.data.year,
+      },
+    }),
   ])
 
-  const scored = scoreDeal(input, motorcycles, entries)
+  const marketView = trackedModel
+    ? await getMarketView(userId, trackedModel)
+    : null
+
+  const scored = scoreDeal(input, motorcycles, entries, marketView)
 
   // §26/§38 — freeze the result so a stored analysis never silently changes
   // when the scoring configuration is later tuned.
@@ -128,6 +154,21 @@ export async function analyzeDeal(
         averageDaysToSell: scored.history.averageDaysToSell,
         label: scored.history.label,
       },
+      market:
+        scored.market === null
+          ? null
+          : {
+              counted: scored.market.counted,
+              confidence: scored.market.score.confidence,
+              score: scored.market.score.score,
+              medianPrice:
+                scored.market.score.medianPrice?.toString() ?? null,
+              estimatedBuyPrice:
+                scored.market.score.estimatedBuyPrice?.toString() ?? null,
+              avgDaysToSell: scored.market.score.avgDaysToSell,
+              demandGrowthBps: scored.market.score.demandGrowthBps,
+              methodology: scored.market.score.provenance.methodology,
+            },
       missingSignals: scored.missingSignals,
     },
   }

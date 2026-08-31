@@ -26,17 +26,20 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  sessions      Session[]
-  settings      Settings?
-  motorcycles   Motorcycle[]
-  ledgerEntries LedgerEntry[]
-  cashAccounts  CashAccount[]
-  categories    Category[]
-  vendors       Vendor[]
-  photos        Photo[]
-  documents     Document[]
-  statusChanges StatusChange[]
-  dealAnalyses  DealAnalysis[]
+  sessions          Session[]
+  settings          Settings?
+  motorcycles       Motorcycle[]
+  ledgerEntries     LedgerEntry[]
+  cashAccounts      CashAccount[]
+  categories        Category[]
+  vendors           Vendor[]
+  photos            Photo[]
+  documents         Document[]
+  statusChanges     StatusChange[]
+  dealAnalyses      DealAnalysis[]
+  MarketModel       MarketModel[]
+  MarketObservation MarketObservation[]
+  WatchlistItem     WatchlistItem[]
 
   @@map("users")
 }
@@ -443,4 +446,121 @@ model DealAnalysis {
 
   @@index([userId, createdAt])
   @@map("deal_analyses")
+}
+
+// ------------------------------------------------------- market intelligence
+
+/// Where a market signal came from. Recorded on every stored value so the UI
+/// can always state its provenance (§39) and never present demo data as fact.
+enum MarketSource {
+  /// Clearly-labelled synthetic data. Carries NONE confidence by construction.
+  DEMO
+  /// A listing the user observed themselves. Real evidence.
+  MANUAL
+  /// Reserved for future external providers.
+  EXTERNAL
+}
+
+enum MarketConfidence {
+  NONE
+  LOW
+  MEDIUM
+  HIGH
+}
+
+/// A tracked model at model+year granularity — §25.
+model MarketModel {
+  id     String @id @default(cuid())
+  userId String
+
+  brand   String
+  model   String
+  variant String?
+  year    Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user         User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  snapshots    MarketSnapshot[]
+  observations MarketObservation[]
+  watchlist    WatchlistItem[]
+
+  @@unique([userId, brand, model, year])
+  @@index([userId])
+  @@map("market_models")
+}
+
+/// A periodic aggregate for one model — §26's trend history.
+model MarketSnapshot {
+  id            String @id @default(cuid())
+  marketModelId String
+
+  source      MarketSource
+  retrievedAt DateTime
+  /// First day of the month this snapshot describes (UTC).
+  periodStart DateTime
+
+  demandIndex   Int?
+  listingCount  Int?
+  medianPrice   BigInt?
+  p25Price      BigInt?
+  p75Price      BigInt?
+  avgDaysToSell Int?
+
+  confidence  MarketConfidence
+  /// Plain-language description of how these values were produced (§39).
+  methodology String
+  sampleSize  Int?
+
+  createdAt DateTime @default(now())
+
+  marketModel MarketModel @relation(fields: [marketModelId], references: [id], onDelete: Cascade)
+
+  @@unique([marketModelId, source, periodStart])
+  @@index([marketModelId, periodStart])
+  @@map("market_snapshots")
+}
+
+/// A single listing the user saw in the wild. The only genuinely real market
+/// data the application has until an external provider is connected.
+model MarketObservation {
+  id            String @id @default(cuid())
+  userId        String
+  marketModelId String
+
+  observedAt     DateTime
+  source         AcquisitionSource
+  askingPrice    BigInt
+  mileage        Int?
+  /// Days the listing had been up when observed, when known.
+  listingAgeDays Int?
+  url            String?
+  note           String?
+
+  createdAt DateTime @default(now())
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  marketModel MarketModel @relation(fields: [marketModelId], references: [id], onDelete: Cascade)
+
+  @@index([marketModelId, observedAt])
+  @@index([userId, observedAt])
+  @@map("market_observations")
+}
+
+/// §27 — models the user follows.
+model WatchlistItem {
+  id            String @id @default(cuid())
+  userId        String
+  marketModelId String
+
+  note      String?
+  createdAt DateTime @default(now())
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  marketModel MarketModel @relation(fields: [marketModelId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, marketModelId])
+  @@index([userId])
+  @@map("watchlist_items")
 }

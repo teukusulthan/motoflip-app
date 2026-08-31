@@ -3,12 +3,18 @@ import {
   AlertTriangle,
   ArrowRight,
   Bike,
+  Flame,
   Info,
   Lock,
   TriangleAlert,
 } from 'lucide-react'
 import { requireUser } from '@/server/auth'
 import { getAllEntries, getCashAccounts } from '@/data/finance'
+import { getMarketViews } from '@/data/market'
+import { scoreOpportunity } from '@/domain/market/opportunity'
+import { OPPORTUNITY_BAND_LABELS } from '@/domain/market/opportunity'
+import { marketModelLabel } from '@/domain/market/types'
+import { formatPercentSigned } from '@/lib/format'
 import {
   getExpiringDocuments,
   getMotorcycles,
@@ -34,6 +40,7 @@ import {
   formatRupiahCompact,
 } from '@/lib/format'
 import { Card, CardContent } from '@/components/ui/card'
+import { cn } from '@/lib/utils'
 import { Stat, StatRow } from '@/components/motorflip/stat'
 import { EmptyState } from '@/components/motorflip/empty-state'
 import { PageHeader, SectionHeader } from '@/components/motorflip/page-header'
@@ -44,13 +51,14 @@ export const dynamic = 'force-dynamic'
 export default async function HomePage() {
   const user = await requireUser()
 
-  const [accounts, entries, motorcycles, documents, settings] =
+  const [accounts, entries, motorcycles, documents, settings, marketViews] =
     await Promise.all([
       getCashAccounts(user.id),
       getAllEntries(user.id),
       getMotorcycles(user.id),
       getExpiringDocuments(user.id),
       getSettings(user.id),
+      getMarketViews(user.id),
     ])
 
   const now = new Date()
@@ -224,9 +232,53 @@ export default async function HomePage() {
         )}
       </section>
 
-      {/* Market — §39: an honest placeholder, never fake data. */}
-      <section className="mt-6">
-        <SectionHeader title="Peluang Pasar" />
+      {/* §4 — market opportunities, ranked by combined score. */}
+      <MarketOpportunities
+        opportunities={marketViews
+          .map((view) => scoreOpportunity(view, motorcycles, entries))
+          .map((opportunity, index) => ({
+            opportunity,
+            view: marketViews[index] as (typeof marketViews)[number],
+          }))
+          .filter((entry) => entry.opportunity.combined !== null)
+          .sort(
+            (a, b) =>
+              (b.opportunity.combined as number) -
+              (a.opportunity.combined as number),
+          )
+          .slice(0, 3)}
+        tracked={marketViews.length}
+      />
+    </>
+  )
+}
+
+function MarketOpportunities({
+  opportunities,
+  tracked,
+}: {
+  opportunities: {
+    opportunity: ReturnType<typeof scoreOpportunity>
+    view: { ref: Parameters<typeof marketModelLabel>[0] }
+  }[]
+  tracked: number
+}) {
+  return (
+    <section className="mt-6">
+      <SectionHeader
+        title="Peluang Pasar"
+        action={
+          <Link
+            href="/pasar"
+            className="flex items-center gap-1 text-xs font-semibold text-accent"
+          >
+            Lihat pasar
+            <ArrowRight className="size-3" aria-hidden />
+          </Link>
+        }
+      />
+
+      {tracked === 0 ? (
         <Card className="border-dashed">
           <CardContent className="flex items-start gap-3">
             <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-elevated text-fg-subtle">
@@ -234,17 +286,75 @@ export default async function HomePage() {
             </span>
             <div className="min-w-0">
               <p className="text-sm font-semibold text-fg">
-                Data pasar belum tersedia
+                Belum ada model yang dipantau
               </p>
               <p className="mt-1 text-sm leading-relaxed text-fg-muted">
-                Intelijen pasar akan aktif setelah sumber data eksternal
-                terhubung. MotorFlip tidak menampilkan angka pasar buatan.
+                Pantau model di halaman Pasar untuk melihat peluang pembelian
+                berdasarkan pasar dan rekam jejak Anda.
               </p>
             </div>
           </CardContent>
         </Card>
-      </section>
-    </>
+      ) : opportunities.length === 0 ? (
+        <Card className="border-dashed">
+          <CardContent>
+            <p className="text-sm text-fg-muted">
+              Belum cukup data untuk menilai peluang pada model yang dipantau.
+            </p>
+          </CardContent>
+        </Card>
+      ) : (
+        <ul className="space-y-2">
+          {opportunities.map(({ opportunity, view }) => {
+            const illustration = opportunity.confidence === 'NONE'
+            return (
+              <li key={view.ref.id}>
+                <Link
+                  href={`/pasar/${view.ref.id}`}
+                  className={cn(
+                    'block rounded-lg border p-4 transition-colors',
+                    illustration
+                      ? 'border-dashed border-warning/40 bg-warning-muted/20 hover:border-warning/60'
+                      : 'border-border bg-surface hover:border-accent/40',
+                  )}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="flex items-center gap-1.5 truncate text-sm font-semibold text-fg">
+                        {!illustration && (
+                          <Flame className="size-3.5 shrink-0 text-accent" aria-hidden />
+                        )}
+                        {marketModelLabel(view.ref)}
+                      </p>
+                      <p className="mt-0.5 text-xs text-fg-muted">
+                        {opportunity.band
+                          ? OPPORTUNITY_BAND_LABELS[opportunity.band]
+                          : '—'}
+                        {opportunity.market.demandGrowthBps !== null &&
+                          ` · Permintaan ${formatPercentSigned(opportunity.market.demandGrowthBps)}`}
+                      </p>
+                    </div>
+                    <span
+                      className={cn(
+                        'tabular shrink-0 rounded-md px-2.5 py-1 text-metric-sm',
+                        illustration
+                          ? 'border border-dashed border-warning/40 text-warning'
+                          : 'bg-accent/12 text-accent',
+                      )}
+                    >
+                      {opportunity.combined}
+                    </span>
+                  </div>
+                  <p className="mt-2 text-xs leading-relaxed text-fg-subtle">
+                    {opportunity.basis}
+                  </p>
+                </Link>
+              </li>
+            )
+          })}
+        </ul>
+      )}
+    </section>
   )
 }
 

@@ -18,11 +18,17 @@ import {
   type Rupiah,
   ZERO,
   addRupiah,
+  bps,
   ratioToBps,
   subRupiah,
 } from './money'
+import { interpolate } from './interpolate'
 import { performanceByModel, performanceByModelYear } from './inventory'
 import type { DomainLedgerEntry, DomainMotorcycle } from './types'
+import type { MarketView } from './market/types'
+import { type MarketScore, scoreMarket } from './market/scoring'
+
+export { interpolate }
 
 export interface DealInput {
   brand: string
@@ -68,11 +74,37 @@ export function projectDeal(input: DealInput): DealProjection {
  */
 export const DEAL_SCORE_CONFIG = {
   weights: {
-    roi: 40,
-    margin: 20,
-    history: 25,
-    repairRisk: 15,
+    roi: 35,
+    margin: 18,
+    history: 22,
+    repairRisk: 13,
+    /** §30 — how the deal's own prices sit against the wider market. */
+    marketAlignment: 12,
   },
+  /**
+   * Discount of the expected purchase against the market's 25th percentile,
+   * in bps. Buying below what the market is already asking is the edge.
+   */
+  buyVsMarketAnchors: [
+    [-1500, 0],
+    [-500, 25],
+    [0, 55],
+    [500, 78],
+    [1200, 95],
+    [2500, 100],
+  ] as ReadonlyArray<readonly [number, number]>,
+  /**
+   * Expected sale against the market median, in bps. Selling at or slightly
+   * below the median is realistic; well above it is wishful.
+   */
+  sellVsMarketAnchors: [
+    [-1500, 90],
+    [-500, 100],
+    [0, 92],
+    [500, 65],
+    [1200, 30],
+    [2500, 0],
+  ] as ReadonlyArray<readonly [number, number]>,
   /** Projected ROI in basis points → sub-score. */
   roiAnchors: [
     [0, 0],
@@ -122,38 +154,13 @@ export const DEAL_SCORE_CONFIG = {
   },
 } as const
 
-/** Piecewise-linear interpolation across anchor points, clamped at both ends. */
-export function interpolate(
-  anchors: ReadonlyArray<readonly [number, number]>,
-  value: number,
-): number {
-  const first = anchors[0]
-  const last = anchors[anchors.length - 1]
-  if (!first || !last) return 0
-  if (value <= first[0]) return first[1]
-  if (value >= last[0]) return last[1]
-
-  for (let i = 0; i < anchors.length - 1; i += 1) {
-    const lo = anchors[i]
-    const hi = anchors[i + 1]
-    if (!lo || !hi) continue
-    if (value >= lo[0] && value <= hi[0]) {
-      const span = hi[0] - lo[0]
-      if (span === 0) return hi[1]
-      const t = (value - lo[0]) / span
-      return lo[1] + t * (hi[1] - lo[1])
-    }
-  }
-  return last[1]
-}
-
 // ------------------------------------------------------------------- score --
 
 export type DealBand = 'STRONG_BUY' | 'CONSIDER' | 'MARGINAL' | 'AVOID'
 export type Confidence = 'HIGH' | 'MEDIUM' | 'LOW'
 
 export interface ScoreComponent {
-  key: 'roi' | 'margin' | 'history' | 'repairRisk'
+  key: 'roi' | 'margin' | 'history' | 'repairRisk' | 'marketAlignment'
   label: string
   score: number | null
   weight: number
@@ -170,6 +177,12 @@ export interface PersonalHistory {
   label: string | null
 }
 
+export interface MarketContext {
+  score: MarketScore
+  /** Whether the market data was allowed to influence the score. */
+  counted: boolean
+}
+
 export interface DealScoreResult {
   score: number
   band: DealBand
@@ -179,6 +192,7 @@ export interface DealScoreResult {
   /** Signals the score could NOT use — surfaced verbatim in the UI (§39). */
   missingSignals: string[]
   projection: DealProjection
+  market: MarketContext | null
 }
 
 /** Pull the user's own track record for the model being analysed. */
@@ -216,10 +230,21 @@ export function scoreDeal(
   input: DealInput,
   motorcycles: readonly DomainMotorcycle[],
   entries: readonly DomainLedgerEntry[],
+  /**
+   * §30 — optional market context for the model being analysed.
+   *
+   * Synthetic market data is shown but NEVER counted: an illustration must not
+   * move a number the user might buy on.
+   */
+  marketView?: MarketView | null,
 ): DealScoreResult {
   const projection = projectDeal(input)
   const history = personalHistory(input, motorcycles, entries)
   const config = DEAL_SCORE_CONFIG
+
+  const marketScore = marketView ? scoreMarket(marketView) : null
+  const marketCounted =
+    marketScore !== null && marketScore.confidence !== 'NONE'
 
   const components: ScoreComponent[] = []
 
@@ -282,6 +307,51 @@ export function scoreDeal(
         : `Perbaikan ${fmtPct(projection.repairShareBps)} dari total biaya.`,
   })
 
+  // 5. Market alignment — how this deal's prices sit against the market (§30).
+  const buyReference = marketScore?.estimatedBuyPrice ?? null
+  const sellReference = marketScore?.medianPrice ?? null
+
+  const buyDiscountBps =
+    marketCounted && buyReference !== null && buyReference > 0n
+      ? ratioToBps(
+          subRupiah(buyReference, input.expectedPurchase),
+          buyReference,
+        )
+      : null
+
+  const sellPremiumBps =
+    marketCounted && sellReference !== null && sellReference > 0n
+      ? ratioToBps(subRupiah(input.expectedSale, sellReference), sellReference)
+      : null
+
+  const alignmentScore =
+    buyDiscountBps === null && sellPremiumBps === null
+      ? null
+      : ((buyDiscountBps === null
+          ? 50
+          : interpolate(config.buyVsMarketAnchors, buyDiscountBps)) +
+          (sellPremiumBps === null
+            ? 50
+            : interpolate(config.sellVsMarketAnchors, sellPremiumBps))) /
+        2
+
+  components.push({
+    key: 'marketAlignment',
+    label: 'Kesesuaian Pasar',
+    score: alignmentScore,
+    weight: config.weights.marketAlignment,
+    rationale:
+      alignmentScore === null
+        ? marketScore === null
+          ? 'Model ini belum dipantau di halaman Pasar.'
+          : 'Data pasar untuk model ini masih ilustrasi, jadi tidak diperhitungkan.'
+        : `Beli ${describeGap(buyDiscountBps, 'di bawah', 'di atas')} harga pasar bawah; jual ${describeGap(
+            sellPremiumBps === null ? null : bps(-sellPremiumBps),
+            'di bawah',
+            'di atas',
+          )} harga tengah pasar.`,
+  })
+
   // Weighted mean over the components that could actually be scored. Weights
   // are renormalised so a missing component does not silently score zero.
   const scored = components.filter(
@@ -295,22 +365,31 @@ export function scoreDeal(
           scored.reduce((sum, c) => sum + c.score * c.weight, 0) / totalWeight,
         )
 
-  // §30 — market data is not available in this phase. Say so, don't fake it.
-  const missingSignals: string[] = [
-    'Data pasar eksternal (permintaan, likuiditas, harga pasar) belum tersedia',
-  ]
+  // §39 — name every signal the score could not use.
+  const missingSignals: string[] = []
+  if (marketScore === null) {
+    missingSignals.push(
+      'Model ini belum dipantau — tambahkan di halaman Pasar untuk memakai data pasar',
+    )
+  } else if (!marketCounted) {
+    missingSignals.push(
+      'Data pasar untuk model ini masih ilustrasi, sehingga tidak memengaruhi skor',
+    )
+  }
   if (!hasHistory) {
     missingSignals.push('Belum ada riwayat flip Anda untuk model ini')
   }
 
-  // Confidence is capped by how much real evidence went into the score.
+  /**
+   * Confidence reflects evidence, not enthusiasm.
+   *
+   * HIGH requires BOTH a real market signal and a real personal track record;
+   * neither alone is enough to be highly confident about a purchase.
+   */
   let confidence: Confidence
-  if (history.matchingYearCount >= 3) confidence = 'MEDIUM'
-  else if (history.matchingYearCount >= 1 || history.matchingModelCount >= 2)
-    confidence = 'LOW'
+  if (marketCounted && history.matchingYearCount >= 3) confidence = 'HIGH'
+  else if (marketCounted || history.matchingYearCount >= 3) confidence = 'MEDIUM'
   else confidence = 'LOW'
-
-  // Without any market signal, HIGH is unreachable by construction (§29/§30).
 
   const band: DealBand =
     projection.projectedProfit <= ZERO
@@ -331,7 +410,23 @@ export function scoreDeal(
     history,
     missingSignals,
     projection,
+    market:
+      marketScore === null
+        ? null
+        : { score: marketScore, counted: marketCounted },
   }
+}
+
+/** "5,2% di bawah" / "3,1% di atas" / "sesuai" */
+function describeGap(
+  bps: BasisPoints | null,
+  below: string,
+  above: string,
+): string {
+  if (bps === null) return 'sesuai'
+  if (bps === 0) return 'tepat di'
+  const magnitude = `${Math.abs(bps / 100).toFixed(1)}%`
+  return `${magnitude} ${bps > 0 ? below : above}`
 }
 
 export const BAND_LABELS: Record<DealBand, string> = {
