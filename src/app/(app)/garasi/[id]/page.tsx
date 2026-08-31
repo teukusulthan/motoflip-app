@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Bike, Camera, FileText, Plus } from 'lucide-react'
+import { Bike, Plus } from 'lucide-react'
 import { requireUser } from '@/server/auth'
 import { getCashAccounts, getEntriesForMotorcycle } from '@/data/finance'
 import {
@@ -29,6 +29,8 @@ import { Stat, StatRow } from '@/components/motorflip/stat'
 import { Timeline, type TimelineEvent } from '@/components/motorflip/timeline'
 import { StatusControl } from './status-control'
 import { SellPanel } from './sell-panel'
+import { Gallery } from './gallery'
+import { Documents } from './documents'
 import { cn } from '@/lib/utils'
 
 export const dynamic = 'force-dynamic'
@@ -234,13 +236,38 @@ export default async function MotorcycleDetailPage({
             entries={rawEntries}
           />
         )}
-        {tab === 'galeri' && <GalleryTab photos={photos} title={title} />}
+        {tab === 'galeri' && (
+          <Gallery
+            motorcycleId={row.id}
+            title={title}
+            photos={photos.map((photo) => ({
+              id: photo.id,
+              url: photo.url,
+              caption: photo.caption,
+              category: photo.category,
+              isHero: photo.id === row.heroPhotoId,
+            }))}
+          />
+        )}
         {tab === 'linimasa' && (
           <Timeline
             events={buildTimeline(rawEntries, statusChanges, photos, documents)}
           />
         )}
-        {tab === 'dokumen' && <DocumentsTab documents={documents} />}
+        {tab === 'dokumen' && (
+          <Documents
+            motorcycleId={row.id}
+            documents={documents.map((doc) => ({
+              id: doc.id,
+              type: doc.type,
+              url: doc.url,
+              fileName: doc.fileName,
+              sizeBytes: doc.sizeBytes,
+              expiresAt: doc.expiresAt?.toISOString() ?? null,
+              notes: doc.notes,
+            }))}
+          />
+        )}
       </div>
     </>
   )
@@ -436,84 +463,6 @@ function VarianceRow({
         </p>
       )}
     </div>
-  )
-}
-
-function GalleryTab({
-  photos,
-  title,
-}: {
-  photos: Awaited<ReturnType<typeof getPhotos>>
-  title: string
-}) {
-  if (photos.length === 0) {
-    return (
-      <div className="flex flex-col items-center rounded-lg border border-dashed border-border bg-surface/50 px-6 py-12 text-center">
-        <Camera className="mb-3 size-6 text-fg-subtle" aria-hidden />
-        <h3 className="text-base font-semibold text-fg">Galeri masih kosong.</h3>
-        <p className="mt-1.5 max-w-[38ch] text-sm text-fg-muted">
-          Foto kondisi pembelian, progres perbaikan, dan hasil akhir akan
-          tersimpan permanen di sini — termasuk setelah motor terjual.
-        </p>
-      </div>
-    )
-  }
-
-  return (
-    <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-      {photos.map((photo) => (
-        <li
-          key={photo.id}
-          className="relative aspect-square overflow-hidden rounded-md border border-border bg-elevated"
-        >
-          <Image
-            src={photo.url}
-            alt={photo.caption ?? title}
-            fill
-            sizes="(max-width: 640px) 50vw, 200px"
-            className="object-cover"
-          />
-        </li>
-      ))}
-    </ul>
-  )
-}
-
-function DocumentsTab({
-  documents,
-}: {
-  documents: Awaited<ReturnType<typeof getDocuments>>
-}) {
-  if (documents.length === 0) {
-    return (
-      <div className="flex flex-col items-center rounded-lg border border-dashed border-border bg-surface/50 px-6 py-12 text-center">
-        <FileText className="mb-3 size-6 text-fg-subtle" aria-hidden />
-        <h3 className="text-base font-semibold text-fg">Belum ada dokumen.</h3>
-        <p className="mt-1.5 max-w-[38ch] text-sm text-fg-muted">
-          Simpan STNK, BPKB, kuitansi, dan surat jual-beli agar tetap melekat
-          pada motor ini selamanya.
-        </p>
-      </div>
-    )
-  }
-
-  return (
-    <Card>
-      <ul className="divide-y divide-border">
-        {documents.map((doc) => (
-          <li key={doc.id} className="flex items-center gap-3 px-4 py-3">
-            <FileText className="size-4 shrink-0 text-fg-subtle" aria-hidden />
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium text-fg">{doc.type}</p>
-              <p className="truncate text-xs text-fg-subtle">{doc.fileName}</p>
-            </div>
-            {doc.expiresAt && (
-              <Badge tone="warning">{formatDate(doc.expiresAt)}</Badge>
-            )}
-          </li>
-        ))}
-      </ul>
-    </Card>
   )
 }
 

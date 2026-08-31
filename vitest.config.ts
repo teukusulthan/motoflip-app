@@ -5,6 +5,10 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
+      // Next no-ops this on the server; do the same so server modules are testable.
+      'server-only': fileURLToPath(
+        new URL('./test/server-only-stub.ts', import.meta.url),
+      ),
     },
   },
   test: {
