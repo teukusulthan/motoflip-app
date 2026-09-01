@@ -185,6 +185,71 @@ export async function deletePhoto(
   return {}
 }
 
+const reorderSchema = z.object({
+  motorcycleId: z.string().min(1),
+  photoId: z.string().min(1),
+  direction: z.enum(['up', 'down']),
+})
+
+/**
+ * §12 — reorder the gallery.
+ *
+ * Implemented as a swap with the adjacent photo rather than a drag-and-drop
+ * payload: it needs no client library, works with a plain form on a phone, and
+ * cannot corrupt the ordering if a request is lost.
+ */
+export async function movePhoto(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const userId = await requireUserId()
+  const parsed = reorderSchema.safeParse(Object.fromEntries(formData))
+  if (!parsed.success) return { error: 'Permintaan tidak valid.' }
+
+  const photos = await prisma.photo.findMany({
+    where: {
+      userId,
+      motorcycleId: parsed.data.motorcycleId,
+      deletedAt: null,
+    },
+    orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+    select: { id: true, sortOrder: true },
+  })
+
+  const index = photos.findIndex((p) => p.id === parsed.data.photoId)
+  if (index === -1) return { error: 'Foto tidak ditemukan.' }
+
+  const target = parsed.data.direction === 'up' ? index - 1 : index + 1
+  if (target < 0 || target >= photos.length) return {}
+
+  const current = photos[index]
+  const neighbour = photos[target]
+  if (!current || !neighbour) return {}
+
+  try {
+    // Rewrite the whole run so duplicate or missing sortOrder values from any
+    // earlier state cannot make the swap a no-op.
+    const reordered = [...photos]
+    reordered[index] = neighbour
+    reordered[target] = current
+
+    await prisma.$transaction(
+      reordered.map((photo, position) =>
+        prisma.photo.update({
+          where: { id: photo.id },
+          data: { sortOrder: position },
+        }),
+      ),
+    )
+  } catch (error) {
+    console.error('movePhoto failed', error)
+    return { error: 'Urutan foto tidak dapat diubah. Silakan coba lagi.' }
+  }
+
+  revalidatePath(`/garasi/${parsed.data.motorcycleId}`)
+  return {}
+}
+
 const documentSchema = z.object({
   motorcycleId: z.string().min(1),
   type: z.nativeEnum(DocumentType),

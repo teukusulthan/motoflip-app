@@ -1,4 +1,3 @@
-import Link from 'next/link'
 import { Receipt, TrendingDown, TrendingUp, ArrowLeftRight } from 'lucide-react'
 import { requireUser } from '@/server/auth'
 import { getRecentEntries } from '@/data/finance'
@@ -7,6 +6,7 @@ import { Card } from '@/components/ui/card'
 import { EmptyState } from '@/components/motoflip/empty-state'
 import { PageHeader } from '@/components/motoflip/page-header'
 import { cn } from '@/lib/utils'
+import { VoidEntryButton } from './void-entry'
 
 export const metadata = { title: 'Transaksi · motoflip' }
 export const dynamic = 'force-dynamic'
@@ -80,35 +80,29 @@ export default async function TransactionsPage() {
                   </p>
                 </div>
 
-                {entry.motorcycle ? (
-                  <Link
-                    href={`/garasi/${entry.motorcycle.id}`}
-                    className={cn(
-                      'tabular shrink-0 text-metric-sm',
-                      entry.voidedAt
-                        ? 'text-fg-subtle line-through'
-                        : entry.type === 'INCOME'
-                          ? 'text-success'
-                          : 'text-fg',
-                    )}
-                  >
-                    {entry.type === 'INCOME' ? '+' : entry.type === 'EXPENSE' ? '−' : ''}
-                    {formatRupiah(entry.amount)}
-                  </Link>
-                ) : (
-                  <span
-                    className={cn(
-                      'tabular shrink-0 text-metric-sm',
-                      entry.voidedAt
-                        ? 'text-fg-subtle line-through'
-                        : entry.type === 'INCOME'
-                          ? 'text-success'
-                          : 'text-fg',
-                    )}
-                  >
-                    {entry.type === 'INCOME' ? '+' : entry.type === 'EXPENSE' ? '−' : ''}
-                    {formatRupiah(entry.amount)}
+                <span
+                  className={cn(
+                    'tabular shrink-0 text-metric-sm',
+                    entry.voidedAt
+                      ? 'text-fg-subtle line-through'
+                      : entry.type === 'INCOME'
+                        ? 'text-success'
+                        : 'text-fg',
+                  )}
+                >
+                  {entry.type === 'INCOME' ? '+' : entry.type === 'EXPENSE' ? '−' : ''}
+                  {formatRupiah(entry.amount)}
+                </span>
+
+                {entry.voidedAt ? (
+                  <span className="w-11 shrink-0 text-center text-[10px] font-bold uppercase text-fg-subtle">
+                    Batal
                   </span>
+                ) : (
+                  <VoidEntryButton
+                    entryId={entry.id}
+                    label={entry.note ?? entry.category.name}
+                  />
                 )}
               </li>
             )

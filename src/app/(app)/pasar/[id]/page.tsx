@@ -33,7 +33,7 @@ import {
 } from '@/components/market/provenance'
 import { TrendChart } from '@/components/market/trend-chart'
 import { ObservationPanel } from './observation-panel'
-import { WatchToggle } from './watch-toggle'
+import { UntrackButton, WatchToggle } from './watch-toggle'
 import { cn } from '@/lib/utils'
 
 export const dynamic = 'force-dynamic'
@@ -72,10 +72,17 @@ export default async function MarketModelPage({
         subtitle={band ? MARKET_BAND_LABELS[band] : 'Belum dinilai'}
         backHref="/pasar"
         action={
-          <WatchToggle
-            marketModelId={row.id}
-            watched={watchlist.has(row.id)}
-          />
+          <div className="flex gap-2">
+            <WatchToggle
+              marketModelId={row.id}
+              watched={watchlist.has(row.id)}
+            />
+            <UntrackButton
+              marketModelId={row.id}
+              label={label}
+              observationCount={observations.length}
+            />
+          </div>
         }
       />
 

@@ -1,6 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import { redirect } from 'next/navigation'
 import { z } from 'zod'
 import { AcquisitionSource } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
@@ -108,7 +109,9 @@ export async function untrackModel(
   await prisma.marketModel.delete({ where: { id: model.id } })
 
   revalidatePath('/pasar')
-  return {}
+  revalidatePath('/beranda')
+  // The detail page for this model no longer exists, so return to the list.
+  redirect('/pasar')
 }
 
 const observationSchema = z.object({

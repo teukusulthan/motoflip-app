@@ -6,10 +6,11 @@ import { useRouter } from 'next/navigation'
 import { useFormState, useFormStatus } from 'react-dom'
 import { Drawer } from 'vaul'
 import { toast } from 'sonner'
-import { Camera, Star, Trash2, X } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Camera, Star, Trash2, X } from 'lucide-react'
 import { PhotoCategory } from '@prisma/client'
 import {
   deletePhoto,
+  movePhoto,
   setHeroPhoto,
   uploadPhotos,
 } from '@/app/actions/media'
@@ -220,6 +221,57 @@ function UploadButton() {
   )
 }
 
+function MoveForm({
+  motorcycleId,
+  photoId,
+  direction,
+  disabled,
+}: {
+  motorcycleId: string
+  photoId: string
+  direction: 'up' | 'down'
+  disabled: boolean
+}) {
+  const [state, formAction] = useFormState(movePhoto, initialState)
+  const router = useRouter()
+
+  React.useEffect(() => {
+    if (state.error) toast.error(state.error)
+    else if (state !== initialState) router.refresh()
+  }, [state, router])
+
+  return (
+    <form action={formAction} className="flex-1">
+      <input type="hidden" name="motorcycleId" value={motorcycleId} />
+      <input type="hidden" name="photoId" value={photoId} />
+      <input type="hidden" name="direction" value={direction} />
+      <MoveButton direction={direction} disabled={disabled} />
+    </form>
+  )
+}
+
+function MoveButton({
+  direction,
+  disabled,
+}: {
+  direction: 'up' | 'down'
+  disabled: boolean
+}) {
+  const { pending } = useFormStatus()
+  const Icon = direction === 'up' ? ArrowLeft : ArrowRight
+  return (
+    <Button
+      type="submit"
+      variant="secondary"
+      size="full"
+      disabled={disabled || pending}
+    >
+      <Icon className="size-4" aria-hidden />
+      {direction === 'up' ? 'Geser Kiri' : 'Geser Kanan'}
+    </Button>
+  )
+}
+
 function PhotoViewer({
   motorcycleId,
   photos,
@@ -310,6 +362,22 @@ function PhotoViewer({
         <p className="text-center text-xs uppercase tracking-wider text-white/50">
           {PHOTO_CATEGORY_LABELS[photo.category]}
         </p>
+
+        {/* §12 — reordering. Swap with the neighbour; no drag library needed. */}
+        <div className="flex gap-2">
+          <MoveForm
+            motorcycleId={motorcycleId}
+            photoId={photo.id}
+            direction="up"
+            disabled={index === 0}
+          />
+          <MoveForm
+            motorcycleId={motorcycleId}
+            photoId={photo.id}
+            direction="down"
+            disabled={index === photos.length - 1}
+          />
+        </div>
 
         <div className="flex gap-2">
           <form action={heroAction} className="flex-1">

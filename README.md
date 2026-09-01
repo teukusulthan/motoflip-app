@@ -46,7 +46,8 @@ set a password and use `scram-sha-256`.
 |---|---|
 | `npm run dev` | Dev server on :3100 |
 | `npm run build` | Production build |
-| `npm test` | Financial domain test suite |
+| `npm test` | Domain + library test suite (no database needed) |
+| `npm run test:integration` | Integration checks against a live database |
 | `npm run test:cov` | Tests with coverage thresholds |
 | `npm run typecheck` | `tsc --noEmit` |
 | `npm run lint` | ESLint, including the domain-purity rule |
@@ -128,9 +129,30 @@ with sample size: under 6 observations is `LOW`, 12 or more is `HIGH`. A month
 with no observations produces no snapshot; a gap is reported as a gap, never
 interpolated.
 
+## Correction, not mutation
+
+Financial records are never edited in place (§38):
+
+- **Transactions** are corrected by voiding and re-entering. The original row is
+  retained with its void reason, so the history shows what was entered and when
+  it was reversed.
+- **Motorcycles** can be edited for identity and projections, but not for money.
+  The edit screen says so and points at the void flow.
+- **Vendors, cash accounts and categories** archive rather than delete, because
+  historical ledger entries reference them.
+- **Photos** soft-delete, so a sold motorcycle's gallery survives a mis-tap.
+
+System categories (the `PURCHASE` and `SALE` roles) can be renamed but not
+re-grouped or archived: the entire financial engine derives from those roles.
+
 ## Security notes
 
 - Sessions are opaque random tokens stored **hashed**; the cookie is HttpOnly.
 - Every read and write re-checks ownership server-side; ids in form fields are
   never trusted.
 - `.env` is gitignored. Set a real `SESSION_SECRET` before deploying.
+- Uploads are validated by magic number, not by the client-supplied MIME type,
+  so a script renamed to `.jpg` is rejected.
+- Documents are served through `/api/dokumen/[id]`, which checks the session and
+  ownership before minting a short-lived signed Cloudinary URL or streaming the
+  local file. Ownership papers are never reachable by guessing a URL.

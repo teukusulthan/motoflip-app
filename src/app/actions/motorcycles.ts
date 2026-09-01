@@ -155,6 +155,67 @@ export async function createMotorcycle(
   redirect(`/garasi/${motorcycleId}`)
 }
 
+const updateSchema = createSchema
+  .omit({ purchasePrice: true, purchaseDate: true, status: true })
+  .extend({ motorcycleId: z.string().min(1) })
+
+/**
+ * Edit a motorcycle's identity and projections.
+ *
+ * Deliberately cannot touch money: the purchase price lives in the ledger, and
+ * changing it means voiding the acquisition entry and reissuing it (§38). The
+ * status has its own flow because every change is recorded as an event.
+ */
+export async function updateMotorcycle(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const userId = await requireUserId()
+
+  const parsed = updateSchema.safeParse(Object.fromEntries(formData))
+  if (!parsed.success) return toActionState(parsed.error)
+
+  const { motorcycleId, ...data } = parsed.data
+
+  const existing = await prisma.motorcycle.findFirst({
+    where: { id: motorcycleId, userId },
+    select: { id: true },
+  })
+  if (!existing) return { error: 'Motor tidak ditemukan.' }
+
+  try {
+    await prisma.motorcycle.update({
+      where: { id: existing.id },
+      data: {
+        brand: data.brand,
+        model: data.model,
+        variant: data.variant,
+        year: data.year,
+        color: data.color,
+        mileage: data.mileage,
+        plateNumber: data.plateNumber,
+        engineNumber: data.engineNumber,
+        frameNumber: data.frameNumber,
+        location: data.location,
+        sellerName: data.sellerName,
+        sellerContact: data.sellerContact,
+        notes: data.notes,
+        acquisitionSource: data.acquisitionSource,
+        projectedRepairCost: data.projectedRepairCost,
+        targetSellingPrice: data.targetSellingPrice,
+      },
+    })
+  } catch (error) {
+    console.error('updateMotorcycle failed', error)
+    return { error: 'Perubahan tidak dapat disimpan. Silakan coba lagi.' }
+  }
+
+  revalidatePath(`/garasi/${existing.id}`)
+  revalidatePath('/garasi')
+  revalidatePath('/beranda')
+  redirect(`/garasi/${existing.id}`)
+}
+
 const statusSchema = z.object({
   motorcycleId: z.string().min(1),
   status: z.nativeEnum(MotorcycleStatus),

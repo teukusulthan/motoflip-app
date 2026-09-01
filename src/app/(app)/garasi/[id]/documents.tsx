@@ -97,7 +97,7 @@ function DocumentRow({ doc }: { doc: DocumentItem }) {
       <FileText className="size-4 shrink-0 text-fg-subtle" aria-hidden />
 
       <a
-        href={doc.url}
+        href={`/api/dokumen/${doc.id}`}
         target="_blank"
         rel="noopener noreferrer"
         className="min-w-0 flex-1"

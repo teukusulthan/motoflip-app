@@ -124,6 +124,38 @@ async function storeOnDisk(
   }
 }
 
+/**
+ * A URL that can actually be read.
+ *
+ * Documents are uploaded to Cloudinary with `authenticated` delivery, so the
+ * secure_url returned at upload time is NOT directly fetchable — it needs a
+ * signature. Local-disk files are served straight from /public.
+ *
+ * Returns null when the caller should stream the file itself.
+ */
+export async function readableUrl(
+  publicId: string,
+  storedUrl: string,
+  mimeType: string,
+): Promise<string | null> {
+  if (publicId.startsWith('local:')) return storedUrl
+  if (!cloudinaryConfigured()) return storedUrl
+
+  const { v2: cloudinary } = await import('cloudinary')
+  cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+  })
+
+  return cloudinary.url(publicId, {
+    type: 'authenticated',
+    resource_type: mimeType === 'application/pdf' ? 'raw' : 'image',
+    sign_url: true,
+    secure: true,
+  })
+}
+
 export async function removeFile(publicId: string): Promise<void> {
   if (publicId.startsWith('local:')) {
     const relative = publicId.slice('local:'.length)

@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Bike, Plus } from 'lucide-react'
+import { Bike, Pencil, Plus } from 'lucide-react'
 import { requireUser } from '@/server/auth'
 import { getCashAccounts, getEntriesForMotorcycle } from '@/data/finance'
 import {
@@ -97,6 +97,13 @@ export default async function MotorcycleDetailPage({
           .filter(Boolean)
           .join(' · ')}
         backHref="/garasi"
+        action={
+          <Button asChild variant="secondary" size="icon" aria-label="Ubah motor">
+            <Link href={`/garasi/${row.id}/ubah`}>
+              <Pencil className="size-4" aria-hidden />
+            </Link>
+          </Button>
+        }
       />
 
       {/* Hero */}
