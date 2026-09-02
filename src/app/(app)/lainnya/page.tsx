@@ -8,6 +8,7 @@ import {
   LogOut,
   Receipt,
   Settings,
+  Plug,
   Store,
   Tags,
   Users,
@@ -50,6 +51,7 @@ const SECTIONS = [
       { href: '/lainnya/vendor', label: 'Vendor', hint: 'Bengkel, biro jasa, pemasok', icon: Users },
       { href: '/lainnya/kategori', label: 'Kategori', hint: 'Klasifikasi pemasukan & pengeluaran', icon: Tags },
       { href: '/lainnya/pengaturan', label: 'Pengaturan', hint: 'Ambang peringatan di beranda', icon: Settings },
+      { href: '/lainnya/integrasi', label: 'Integrasi', hint: 'Hubungkan aplikasi lain lewat Composio', icon: Plug },
     ],
   },
 ] as const

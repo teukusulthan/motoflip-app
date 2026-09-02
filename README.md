@@ -145,6 +145,40 @@ Financial records are never edited in place (§38):
 System categories (the `PURCHASE` and `SALE` roles) can be renamed but not
 re-grouped or archived: the entire financial engine derives from those roles.
 
+## Integrations (Composio)
+
+Optional. Set `COMPOSIO_API_KEY` and `ANTHROPIC_API_KEY` in `.env`, then open
+**Lainnya -> Integrasi** to authorise apps (Gmail, Google Sheets, Notion, …).
+
+| Piece | Path |
+|---|---|
+| Client + config guards | `src/server/composio/client.ts` |
+| Connection management | `src/server/composio/toolkits.ts` |
+| Agent loop | `src/server/composio/agent.ts` |
+| Connection API | `src/app/api/composio/connections/route.ts` |
+| Assistant API | `src/app/api/chat/route.ts` |
+| UI | `src/app/(app)/lainnya/integrasi` |
+
+Design decisions worth knowing:
+
+- **Every route is authenticated**, and the Composio user id is namespaced as
+  `motoflip:<userId>`, so one operator's connected accounts are never visible
+  to another.
+- **Credentials live with Composio**, never in this database. The API key is
+  read server-side only and never reaches the browser.
+- **The agent can only reach apps you explicitly connect.** Tools are fetched
+  for the toolkits present in *your* connected accounts — not the full catalog.
+- **Not the Claude Agent SDK.** That harness spawns a Claude Code process with
+  filesystem and bash access, which has no business in a web request handling
+  financial data. This uses the plain Messages API tool-use loop, capped at 8
+  iterations so a confused model cannot loop indefinitely on your bill.
+- The system prompt instructs the model to confirm before creating, updating
+  or deleting anything in an external app, and never to invent financial
+  figures.
+
+Without the keys, the app runs exactly as before — the Integrations page shows
+a configuration notice and the assistant endpoint returns 503.
+
 ## Security notes
 
 - Sessions are opaque random tokens stored **hashed**; the cookie is HttpOnly.
